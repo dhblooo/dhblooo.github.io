@@ -1,0 +1,237 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="UE4 文件系统"><meta name="keywords" content="UE4,文件系统"><meta name="author" content="dhbloo,duanhb1084@qq.com"><meta name="copyright" content="dhbloo"><title>UE4 文件系统 | dhb's Blog</title><link rel="shortcut icon" href="/melody-favicon.ico"><link rel="stylesheet" href="/css/index.css?version=1.8.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.8.2"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.2/css/all.min.css?version=1.8.2"><meta name="format-detection" content="telephone=no"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="dns-prefetch" href="https://www.google-analytics.com"><script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-143073882-2', 'auto');
+ga('send', 'pageview');</script><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容:${query}"}},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  hexoVersion: '5.0.2'
+} </script><meta name="generator" content="Hexo 5.0.2"></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar" data-display="true"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#iplatformfile"><span class="toc-number">1.</span> <span class="toc-text"> IPlatformFile</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ifilehandle"><span class="toc-number">2.</span> <span class="toc-text"> IFileHandle</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fplatformfilemanager"><span class="toc-number">3.</span> <span class="toc-text"> FPlatformFileManager</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#%E6%8E%A5%E5%8F%A3%E7%9A%84%E5%88%9B%E5%BB%BA"><span class="toc-number">3.0.1.</span> <span class="toc-text"> 接口的创建</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#ifilemanager"><span class="toc-number">4.</span> <span class="toc-text"> IFileManager</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E7%9B%B8%E5%85%B3%E6%96%87%E4%BB%B6%E6%8E%A5%E5%8F%A3"><span class="toc-number"></span> <span class="toc-text"> 平台相关文件接口</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#fwindowsplatformfile"><span class="toc-number">1.</span> <span class="toc-text"> FWindowsPlatformFile</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E9%80%BB%E8%BE%91%E5%8C%85%E8%A3%85%E6%96%87%E4%BB%B6%E6%8E%A5%E5%8F%A3"><span class="toc-number"></span> <span class="toc-text"> 逻辑包装文件接口</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#fnetworkplatformfile"><span class="toc-number">1.</span> <span class="toc-text"> FNetworkPlatformFile</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#fcookediterativenetworkfile"><span class="toc-number">1.0.1.</span> <span class="toc-text"> FCookedIterativeNetworkFile</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fstreamingnetworkplatformfile"><span class="toc-number">1.0.2.</span> <span class="toc-text"> FStreamingNetworkPlatformFile</span></a></li></ol></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fsandboxplatformfile"><span class="toc-number">2.</span> <span class="toc-text"> FSandboxPlatformFile</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fpakplatformfile"><span class="toc-number">3.</span> <span class="toc-text"> FPakPlatformFile</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#fplatformfilereadstats"><span class="toc-number">4.</span> <span class="toc-text"> FPlatformFileReadStats</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#qa"><span class="toc-number"></span> <span class="toc-text"> Q&amp;A</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number">1.</span> <span class="toc-text"> 参考</span></a></li></ol></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/icons/avatar.jpg"></div><div class="author-info__name text-center">dhbloo</div><div class="author-info__description text-center">A CS student, currently studying at HUST</div><div class="follow-button"><a target="_blank" rel="noopener" href="https://github.com/dhbloo">Follow Me</a></div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">15</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">18</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">5</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://gomocalc.github.io/">Gomocalc</a><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://blog.nirvanasc.com/">ChenYixin</a></div></div></div><div id="content-outer"><div class="no-bg" id="top-container"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">dhb's Blog</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus">   <a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a><a class="site-page" href="/log">Site Log</a></span><span class="pull-right"><a class="site-page social-icon search"><i class="fa fa-search"></i><span> 搜索</span></a></span></div><div id="post-info"><div id="post-title">UE4 文件系统</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2020-09-07</time><span class="post-meta__separator">|</span><i class="fa fa-inbox post-meta__icon" aria-hidden="true"></i><a class="post-meta__categories" href="/categories/UE4/">UE4</a><div class="post-meta-wordcount"><span>字数总计: </span><span class="word-count">6.2k</span><span class="post-meta__separator">|</span><span>阅读时长: 19 分钟</span></div></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><blockquote>
+<p>整理了一下实习时记录的有关于Unreal Engine 4的文档，共有两篇。</p>
+</blockquote>
+<p>本文主要讲述UE4文件系统的抽象层次结构。</p>
+<a id="more"></a>
+<h3 id="iplatformfile"><a class="markdownIt-Anchor" href="#iplatformfile"></a> IPlatformFile</h3>
+<p>对平台相关的文件操作都抽象在<code>IPlatformFile</code>接口上进行实现。</p>
+<p><img src="/images/ue4-filesystem-classes.jpg" alt="文件系统类图" /></p>
+<p>从上面的类图可以看出文件操作的实现类可以大致分为2类：</p>
+<ul>
+<li>
+<p>具体平台的文件操作的实现均继承在<code>IPhysicalPlatformFile</code>接口下，包括：</p>
+<ul>
+<li><code>FLinuxPlatformFile</code>：Linux平台文件操作</li>
+<li><code>FWindowsPlatformFile</code>：Windows平台文件操作</li>
+<li><code>FHTML5PlatformFile</code>：HTML5文件操作</li>
+<li><code>FAndroidPlatformFile</code>：Android平台文件操作，继承自<code>IAndroidPlatformFile</code>接口</li>
+<li><code>FApplePlatformFile</code>：Mac OS X平台文件操作</li>
+<li><code>FIOSPlatformFile</code>：IOS平台文件操作，继承自<code>FApplePlatformFile</code></li>
+</ul>
+<p>实际编译的时候以上的几个类只有唯一一个对应目标平台的会被编译进程序中。</p>
+</li>
+<li>
+<p>其余有一些对文件操作的包装类（Warpper）也继承自<code>IPlatformFile</code>接口，它们是虚拟在某一底层文件接口上的一层接口，主要是在某一个已有的文件操作接口上实现一些功能的增强、文件访问监控、性能监测等操作。这一种包装体现为对<code>IPlatformFile</code>的<strong>链式引用</strong>（典型的<strong>责任链</strong>设计模式）：</p>
+<ul>
+<li>继承自<code>IPlatformFile</code>的包装子类中均有一个<strong>指向更底层一层的文件操作接口的<code>IPlatformFile*</code>指针</strong>，这个指针在调用<code>Initialize()</code>对文件操作包装类初始化是就需要传入，之后可以用<code>GetLowerLevel()</code>和<code>SetLowerLevel()</code>获取或设置该底层文件操作接口指针。</li>
+<li>实现具体平台文件操作的<code>IPhysicalPlatformFile</code>接口和其子类，由于不可能有比其更底层的文件操作接口（它们自身已经是最低一层），在<code>IPhysicalPlatformFile</code>接口中屏蔽了设置底层<code>IPlatformFile*</code>指针的函数。</li>
+<li>对已有文件操作的增强，主要就体现为：把文件操作请求转发到更低一层文件操作接口的前后插入其特定的一些操作，如对读写数据进行修改，或者将操作的详细情况记录在一个日志中。还可以选择不转发到更低一层，如实现缓存功能时命中缓存的数据可以直接在内存中读取，无需实际访问文件系统。</li>
+</ul>
+<p>这些逻辑接口共包括：</p>
+<ul>
+<li><code>FCachedReadPlatformFile</code>：实现文件的预读取到内存，每次预读64KB的数据为一个缓存块。</li>
+<li><code>FLoggedPlatformFile</code>：实现文件操作的日志记录，会记录下文件操作的类别、操作执行时间等。</li>
+<li><code>FPlatformFileOpenLog</code>：记录文件的打开操作到日志中（编辑器环境下<code>EditorOpenOrder.log</code>；其他环境下<code>GameOpenOrder.log</code>）。</li>
+<li><code>FNetworkPlatformFile</code>：实现对服务器上文件的访问，将服务器上的文件下载到本地进行访问。</li>
+<li><code>FSandBoxPlatformFile</code>：将文件访问转化为沙盒内的文件访问，对于不在沙盒内的文件以只读的形式访问。可以配置沙盒外文件访问禁止名单。</li>
+<li><code>FPakPlatformFile</code>：对Pak文件读取的封装，将Pak文件虚拟为一个文件系统的形式进行访问。</li>
+<li><code>FPlatformFileReadStats</code>：对文件读取速度进行统计，获取读取的每秒字节数。</li>
+<li><code>FProfiledPlatformFile</code>：记录更详细的文件操作时间，如每一次操作的开始时间、处理字节数、操作间隔等。</li>
+</ul>
+</li>
+</ul>
+<p><code>IPlatformFile</code>接口的函数大致有一下几类：</p>
+<ol>
+<li>返回自身的查询信息：如接口名字<code>GetName()</code>、是否应该使用<code>ShouldBeUsed()</code>、是否启用沙盒<code>IsSandboxEnabled()</code>、获取底层文件接口<code>GetLowerLevel()</code></li>
+<li>初始化和参数设置：如<code>Initialize()</code>，会传入底层文件系统和命令行、<code>SetSandboxEnabled()</code>、<code>AddLocalDirectories()</code>等</li>
+<li>文件相关
+<ol>
+<li>查询：如是否存在<code>FileExists()/DirectoryExists()</code>、文件大小<code>FileSize()</code>、文件属性（只读？<code>IsReadOnly()</code>，修改时间<code>GetTimeStamp()</code>）等</li>
+<li>修改：删除<code>DeleteFile()/DeleteDirectory()</code>、移动文件<code>MoveFile()</code>、复制<code>CopyFile()/CopyDirectoryTree()</code>、创建目录<code>CreateDirectory()</code>等</li>
+<li>打开文件并读写：<code>OpenRead()</code>、<code>OpenReadNoBuffering()</code>、<code>OpenWrite()</code>，返回一个表示文件句柄的<code>IFileHandle*</code>指针。</li>
+<li>遍历文件/目录：采用了访问者模式，有2种方式实现访问者。调用<code>IterateDirectory</code>等一系列函数便可以遍历文件或目录。
+<ul>
+<li>通过继承<code>FDirectoryStatVisitor</code>并覆盖<code>visit()</code>函数实现遍历逻辑。</li>
+<li>直接将一个函数传入以<code>TFunctionRef&lt;...&gt;</code>的形式传入，适合用于在匿名函数中写遍历逻辑。</li>
+</ul>
+</li>
+<li>其他一些杂项：如异步文件读取接口<code>OpenAsyncRead()</code>，与文件服务器通信<code>SendMessageToServer()</code>、转换路径为绝对路径<code>ConvertToAbsolutePathForExternalAppForRead()</code>等</li>
+</ol>
+</li>
+<li>返回当前实际的物理文件接口的函数<code>GetPlatformPhysical()</code>和<code>GetPhysicalTypeName()</code>，这个函数的根据编译时选择的目标平台的内容选用不同的版本，在编译时确定下来应该返回<code>IPhysicalPlatformFile</code>中的哪个。</li>
+</ol>
+<h3 id="ifilehandle"><a class="markdownIt-Anchor" href="#ifilehandle"></a> IFileHandle</h3>
+<p>在<code>IPlatformFile</code>中，只有对文件的宏观操作而不涉及文件内容的具体读写操作，而对于文件内容的读取与写入的具体接口则定义在了<code>IFileHandle</code>这个接口中。</p>
+<p>每次读取文件前先在<code>IPlatformFile</code>中以文件名打开文件，之后会返回<code>IFileHandle</code>的指针，返回的就是打开文件的句柄，这个句柄记录了读写文件需要的状态（如当前读写位置），通过这个句柄可以对文件内容进行操作。这一层类似C语言中<code>fopen()</code>后返回的<code>FILE*</code>文件指针。</p>
+<p><code>IFileHandle</code>定义了几个低层次的读写操作，如<code>Read()</code>、<code>Write()</code>、<code>Flush()</code>、<code>Seek()</code>、<code>Tell()</code>等，这些函数读写的均是字节缓冲区。</p>
+<p>上面提到的文件操作的包装类，如果要在文件读写内容上做修改，或者有其他的文件读写源，就需要相应地继承<code>IFileHandle</code>，覆盖对应的函数，并在打开文件时返回实现了特定功能的<code>IFileHandle</code>子类。如<code>FCachedReadPlatformFile</code>对应地有<code>FCachedFileHandle</code>；<code>FPakPlatformFile</code>对应地有<code>FPakFileHandle</code>等。</p>
+<h3 id="fplatformfilemanager"><a class="markdownIt-Anchor" href="#fplatformfilemanager"></a> FPlatformFileManager</h3>
+<p>上面提到了很多实现了<code>IPlatformFile</code>的子类，每个涉及到文件读取的地方都可能使用到这些子类中的某一个，因此需要一个类管理这些子类，这个类就是<code>FPlatformFileManager</code>。</p>
+<p>其中最常用的函数是<code>GetPlatformFile()</code>，这个函数返回当前平台的文件接口实例<code>IPlatformFile&amp;</code>，这样只要使用这个函数，就可以获取一个平台无关的文件访问接口。</p>
+<p>此外，如果用到了实现增强功能的文件接口包装类，这个时候文件接口被更上一层的类包装，实际上形成了一个接口调用链。<code>FPlatformFileManager</code>也负责对这个链进行管理，如：</p>
+<ul>
+<li>设置当前最顶层的文件接口<code>SetPlatformFile()</code></li>
+<li>以名字查找链中的某一文件接口<code>FindPlatformFile()</code></li>
+<li>Tick整条链<code>TickActivePlatformFile()</code></li>
+<li>以名字创建新的接口<code>GetPlatformFile()</code>（这个函数也控制了某编译配置下能用哪些接口，如在Shipping模式下不能使用Log文件接口）</li>
+</ul>
+<h5 id="接口的创建"><a class="markdownIt-Anchor" href="#接口的创建"></a> 接口的创建</h5>
+<p>具体使用到哪些文件接口包装类，由程序启动的命令行参数进行控制。</p>
+<p>对文件接口包装类的实际创建在<code>LaunchEngineLoop.cpp</code>中的<code>LaunchCheckForFileOverride()</code>函数与<code>ConditionallyCreateFileWrapper()</code>函数进行。前者按照预先定义好的顺序，调用后者尝试进行创建包装类。后者会从<code>FPlatformFileManager</code>中记载的所有文件接口类中查找到某一个文件包装类，调用其<code>ShouldBeUsed()</code>函数从命令行中获取是否应该启用该包装类的信息，如果启用，则初始化这个文件包装类，让其包装当前的顶层文件接口，并在<code>FPlatformFileManager</code>中更新该信息。</p>
+<p>以上这些文件接口包装类的链式定义顺序是（下一层包装上一层）：</p>
+<ol>
+<li>PakFile；在非编辑器模式下或MONOLITIC模式下默认启用，除非指定<code>NoPak</code>参数</li>
+<li>CachedReadFile ；在PS4与Windows下默认关闭（因为Windows本身自己会预读取），可通过<code>NoCachedReadFile</code>参数和<code>CachedReadFile</code>参数强行关闭或启用</li>
+<li>SandBoxFile；通过<code>-Sandbox=</code>参数指定沙盒路径并启用</li>
+<li>网络文件包装类三选一，优先级：StreamingFile &gt; CookedIterativeFile &gt; NetworkFile（只用于非Shipping构建下）；通过<code>-FileHostIP=</code>参数指定文件Host并启用，Host必须可以访问，不然程序无法启动。</li>
+<li>ProfileFile（只用于非Shipping构建下）；指定<code>ProfileFile</code>参数开启</li>
+<li>SimpleProfileFile（只用于非Shipping构建下）；指定<code>SimpleProfileFile</code>参数开启</li>
+<li>FileReadStats（只用于非Shipping构建下）；指定<code>FileReadStats</code>参数开启</li>
+<li>FileOpenLog（只用于非Shipping构建下）；指定<code>FileOpenLog</code>参数开启</li>
+<li>LogFile；指定<code>FileLog</code>参数开启</li>
+</ol>
+<p>如果考虑加入自定义的文件接口包装类，需要选择在合适的位置加入。上面的顺序可以看出UE4处理的大致顺序是：先做Pak，再做读取性能优化、再做沙盒权限，之后是网络文件，最后是一系列的性能统计与Log记录。</p>
+<h3 id="ifilemanager"><a class="markdownIt-Anchor" href="#ifilemanager"></a> IFileManager</h3>
+<p>由于<code>IPlatformFile</code>接口比较偏底层（其打开文件后返回的文件句柄<code>IFileHandle</code>也是直接读写字节缓冲区的底层接口），不方便使用，<code>IFileManager</code>定义了更高一层的文件接口，实际的实现在<code>FFileManagerGeneric</code>中。</p>
+<p>由于获取平台无关文件接口经常要调用<code>FPlatformFileManager::Get().GetPlatformFile()</code>，显得繁琐，这一层接口直接完成了这一步骤，并将操作转发到获取到的这个接口上，这样就保证了所有操作都是平台无关的。</p>
+<p>在这一层接口上实现了一些更高层的文件操作，更方便调用：</p>
+<ul>
+<li>打开文件是通过<code>CreateFileReader()</code>、<code>CreateFileWriter()</code>这两个函数，它们返回的是对读写操作包装好了的档案类<code>FArchive*</code>，其中实现了一系列的与<code>UObject</code>相关的序列化方法和许多其他类型的序列化方法，更便于保存对象到文件这个经常性操作。序列化操作最后被<code>FArchiveFileReaderGeneric</code>这个继承于<code>FArchive</code>的类转化为对字节缓冲区的操作，再转发到底层文件接口。</li>
+<li>定义了一些常用的，但是底层接口没有提供的文件操作。如递归查找文件<code>FindFiles()</code>、获取文件寿命<code>GetFileAgeSeconds()</code>等。</li>
+<li>增强了一些文件操作：如带进度回调的文件复制<code>Copy()</code>；在操作失败时打印到Log等。</li>
+</ul>
+<p>有了这些接口，操作文件就十分方便了，实际对文件操作时一般只用的到这个类，而不需要调用最底层的<code>IPlatformFile</code>接口。</p>
+<h2 id="平台相关文件接口"><a class="markdownIt-Anchor" href="#平台相关文件接口"></a> 平台相关文件接口</h2>
+<h3 id="fwindowsplatformfile"><a class="markdownIt-Anchor" href="#fwindowsplatformfile"></a> FWindowsPlatformFile</h3>
+<p>Windows平台的文件接口，与之配套的有文件句柄<code>FFileHandleWindows</code>、文件异步读取接口<code>FAsyncBufferedFileReaderWindows</code>等。</p>
+<p>该接口直接采用Windows API实现Windows平台上的文件相关操作，涉及到<code>CreateFileW()</code>、<code>MoveFileW()</code>、<code>DeleteFileW()</code>、<code>GetFileAttributesExW()</code>、<code>GetFileSizeEx()</code>、<code>SetFileTime()</code>、<code>FindFirstFileW()</code>、<code>GetOverlappedResult()</code>、<code>CloseHandle()</code>等。文件句柄中对文件内容的读写涉及到<code>ReadFile()</code>、<code>WriteFile()</code>、<code>FlushFileBuffers()</code>等。文件异步读取接口中涉及到<code>WaitForAsyncRead()</code>等。</p>
+<p>在实现的时候，也需要完成错误检测相关的功能，需要调用<code>GetLastError()</code>；完成文件路径的本地化转换；将UE4中的内建的数据类型，如时间表示转化为Windows平台上的时间表示等。</p>
+<h2 id="逻辑包装文件接口"><a class="markdownIt-Anchor" href="#逻辑包装文件接口"></a> 逻辑包装文件接口</h2>
+<h3 id="fnetworkplatformfile"><a class="markdownIt-Anchor" href="#fnetworkplatformfile"></a> FNetworkPlatformFile</h3>
+<p>该接口实现网络文件的访问。每次需要访问网络文件时，将文件下载到本地，后续按照本地文件进行访问。</p>
+<p>文件的Host地址由启动命令行参数<code>-FileHostIP=</code>指定，可以同时指定多个Host地址，用<code>+</code>分隔。与Host通信可以指定用TCP协议（以<code>tcp://</code>开头）；也可以指定用HTTP协议（以<code>http://</code>），不指定默认使用TCP。</p>
+<p>接口与服务器通信使用了专门定制的协议，这个协议的一部分定义在<code>Runtime/Sockets/Public/NetworkMessage.h</code>下，包括消息类型、通道类型、连接标志（<code>None</code>/<code>Streaming</code>/<code>PreCookedIterative</code>）、消息头格式、默认端口号等。Socket传输均采用的是阻塞操作，直到传输完成或出错才会返回。</p>
+<p>并不是全部路径都使用网络访问，接口内有一个<code>LocalDirectories</code>数组记录哪些目录只以本地的形式访问。默认有一些目录以本地形式访问，如Binaries目录、Intermediate目录、Backup目录、Config目录、Logs目录、Sandboxes目录和所有的DDC目录。接口在每次做相关的文件操作前，先用函数<code>IsInLocalDirectoryUnGuarded()</code>判断一下路径是否应该以本地形式访问，如果是则不会在服务器上获取该路径的文件。</p>
+<p>对于不在<code>LocalDirectories</code>数组中的路径，文件应该从服务器上获取。在涉及到需要访问这些文件的操作时，接口会先从服务器上将文件下载到本地，确保之后能以本地的形式访问，这一步由<code>EnsureFileIsLocal()</code>函数完成。为了知道哪些文件已经被下载过，每个被尝试下载过的路径会加入缓存路径列表<code>CachedLocalFiles</code>中，这样下次就可以直接查询出文件是否已在本地（即使下载失败，也会加入该表，下次不会再尝试下载）。</p>
+<p>对于写入文件的操作，直接在本地文件系统上进行，<strong>不会</strong>写回到服务器上（服务器不需要对文件进行修改）。</p>
+<p>网络文件路径与本地文件路径有一个对应关系，这个对应关系在初始化函数<code>InitializeAfterSetActive()</code>中，与服务器通信后建立。与服务器通信并初始化的过程大致如下：</p>
+<ol>
+<li>接口将平台版本号、游戏名、本地的一系列常用目录路径发送给服务器，包括游戏目录路径（项目目录路径）、引擎路径、插件路径。扩展路径等。</li>
+<li>服务器发送：
+<ul>
+<li>Cooked Package版本号，用于与本地版本对比。</li>
+<li>4个本地路径对应的服务器目录路径，包括服务器引擎路径、服务器项目路径、服务器引擎扩展路径、服务器项目扩展路径。</li>
+<li>一个服务器文件表<code>ServerFiles</code>，这个表中记录了服务器中的所有文件与文件的时间戳信息。有了这个表后，不需要访问服务器就可以知道服务器上有哪些文件，遍历服务器上的文件路径。</li>
+<li>一个服务器缓存表<code>ServerCachedFiles</code>，这个表中记录了服务器中的所有缓存文件与时间戳信息。（这个表具体含义不明）</li>
+</ul>
+</li>
+<li>将服务器的Cooked Package版本号与本地<code>CookedVersion.txt</code>中的版本号对比，如果服务器的版本未变，则不需要删除任何本地已经缓存的文件。</li>
+<li>否则需要删除本地缓存的过期文件：通过对比服务器缓存表中的时间戳与本地文件的时间戳，将服务器上有更新版本的本地缓存文件删除。此外本地缓存了而服务器缓存表中没有的文件，也需要删除。</li>
+</ol>
+<p>有了对应关系后，就可以把服务器上的文件路径对应到本地文件路径（进行字符串替换即可），<code>ConvertServerFilenameToClientFilename()</code>函数就实现了这个对应操作。</p>
+<p>服务器的文件随时可能更新，接口会实时监测服务器上的更新并让本地的文件保持更新：<code>Tick()</code>中每5秒会调用<code>PerformHeartbeat()</code>与服务器进行心跳沟通，获得一个更新了的文件列表<code>UpdatedFiles</code>，并将本地过期的文件删除（同时删除缓存路径列表<code>CachedLocalFiles</code>中的对应项）。这样，下次访问到更新了的文件时，会重新从服务器下载最新版本。</p>
+<h5 id="fcookediterativenetworkfile"><a class="markdownIt-Anchor" href="#fcookediterativenetworkfile"></a> FCookedIterativeNetworkFile</h5>
+<p>该接口在<code>FNetworkPlatformFile</code>的基础上，多了允许本地PAK文件绕过网络访问的功能。如果在一个迭代流程中，一些PAK文件不会被修改，则它们不需要从服务器上获取，直接用本地版本就可以了，这个接口便是提供了这个功能。</p>
+<p>服务器在初始化时额外返回一个可以本地使用的PAK文件列表<code>ServerValidPakFileFiles</code>，之后访问文件时，如果文件在这些可以直接本地访问的PAK中，就不再需要网络访问，而是直接转发到底层的<code>FPakPlatformFile</code>进行访问。这个判断在<code>ShouldPassToPak()</code>函数中进行。</p>
+<h5 id="fstreamingnetworkplatformfile"><a class="markdownIt-Anchor" href="#fstreamingnetworkplatformfile"></a> FStreamingNetworkPlatformFile</h5>
+<p>这个接口在<code>FNetworkPlatformFile</code>的基础上，实现了真正的流式文件传输。所有对文件的访问、读写操作都被转化为对服务器的访问，通过Socket与实时与服务器通信（除了遍历文件不需要访问服务器，因为初始化时就已经获得了服务器上所有文件的文件表）。这个接口也可以实际修改服务器上的文件。</p>
+<p>每一种文件操作都有一个协议中定义的消息类型与之对应，操作时将消息类型、参数等以协议定义的格式序列化为一个Payload发送给服务器，阻塞等待服务器返回。</p>
+<p>打开文件的<code>OpenRead()</code>、<code>OpenWrite()</code>函数使用<code>SendOpenMessage()</code>通知服务器打开文件，服务器会返回一个文件的句柄ID，后续对该文件的操作以这个句柄ID作为标识。在接口配套定义的<code>FStreamingNetworkFileHandle</code>文件句柄中，<code>Read()</code>、<code>Write()</code>等操作都被转换到对服务器发送消息，分别在<code>SendReadMessage()</code>与<code>SendWriteMessage()</code>中。这样，对文件的读取实时从服务器获得（每次网络传输以64KB的块为单位进行，进行缓存），而对文件的写入则实时发送到服务器。</p>
+<h3 id="fsandboxplatformfile"><a class="markdownIt-Anchor" href="#fsandboxplatformfile"></a> FSandboxPlatformFile</h3>
+<p>该接口实现了一个简单的沙盒机制：将访问的文件路径转换为沙盒内的文件路径进行访问。</p>
+<p>接口的使用者有对沙盒内文件的读写权限，而对于沙盒外的文件默认只有读取权限而没有写入权限。此外，还可以用通配符的方式设置对哪些沙盒外的文件或目录禁止读取权限（也就是读取权限的黑名单）。判断沙盒外文件是否在这个名单内的函数是<code>OkForInnerAccess()</code>；用<code>AddExclusion()</code>函数加入通配符到黑名单中。</p>
+<p>其核心的功能是将文件路径与沙盒内路径进行相互转换，分别通过<code>ConvertToSandboxPath()</code>、<code>ConvertFromSandboxPath()</code>这两个函数进行。其转换逻辑大致如下：</p>
+<ol>
+<li>对于已在沙盒内的文件路径，保持原样</li>
+<li>对于在游戏目录下（即项目目录<code>FPaths::ProjectDir()</code>）的路径，转换为沙盒内的对应路径（<code>沙盒根目录/项目名/...</code>）</li>
+<li>对于根目录下（即<code>FPaths::RootDir()</code>）的路径，转换为沙盒内的对应路径（<code>沙盒根目录/...</code>）</li>
+</ol>
+<p>对于只涉及读取的文件操作，首先会将路径转换为沙盒内路径，尝试以这个路径访问。如果访问失败（文件不在沙盒内），则用<code>OkForInnerAccess()</code>判断该沙盒外的路径是否允许读取，如果是则访问。对于涉及到写入的文件操作，如<code>OpenWrite()</code>、<code>DeleteFile()</code>、<code>MoveFile()</code>、<code>CreateDirectory()</code>等，只以沙盒内的路径进行写入，以确保不会写入到沙盒外部。</p>
+<p>有了路径转换和对写入操作的限制后，沙盒化功能就实现了。沙盒功能的具体开关由<code>bSandboxEnabled</code>变量控制，其可以通过<code>SetSandboxEnabled()</code>来开启或关闭。</p>
+<p>此外该接口还有一些杂项功能，如清除沙盒内全部文件的<code>WipeSandboxFolder()</code>函数，这个函数通过初始化时给接口提供的命令行参数触发（在命令行参数中加入<code>wipe:</code>前缀）。命令行中通过<code>-Sandbox=</code>可以设置沙盒路径，可以是绝对路径/相对路径，也可以是一些常用路径，如<code>User</code>表示用户文件夹下的一个路径<code>用户目录/My Games/UE4</code>、<code>Unique</code>表示以Guid生成一个独一无二的根目录下的随机路径。</p>
+<h3 id="fpakplatformfile"><a class="markdownIt-Anchor" href="#fpakplatformfile"></a> FPakPlatformFile</h3>
+<p>该接口是UE4对PAK文件的读写封装。PAK文件的具体实现在<code>PAKFile</code>类中，<code>FPakPlatformFile</code>将各种对PAK的读取访问操作，最后变为调用<code>PAKFile</code>的实现函数。</p>
+<p>PAK文件挂载后便可以像普通的文件一样访问PAK中的文件，挂载与卸载分别通过<code>Mount()</code>与<code>Unmount()</code>函数进行。挂载除了要提供PAK文件名外，还可以提供挂载路径，可以指定将PAK文件挂载在某个虚拟文件系统的路径下（这样便可以将虚拟目录里的文件分散到多个PAK进行储存了）。支持同时挂载多个PAK，考虑到经常需要挂载一个目录下的所有PAK文件，接口还提供了一个<code>MountAllPakFiles()</code>函数通过通配符批量挂载PAK文件，初始化时便会用该函数从几个常用目录下挂载所有找到的PAK文件夹。</p>
+<p>PAK文件都有一个挂载优先级，优先级决定了若多个PAK文件都含有同一个虚拟路径的文件，应该选用哪个PAK中的文件的问题。PAK文件的挂载优先级可以在<code>Mount()</code>时制定。当用<code>MountAllPakFiles()</code>批量挂载时，挂载优先级由一个硬编码的逻辑决定，为主游戏PAK &gt; 游戏Content PAK &gt; 引擎Content PAK &gt; Saved Dir PAK &gt; 其他PAK。</p>
+<p>挂载优先级同时也是打补丁的重要机制。在UE4中，补丁包PAK文件名规定以<code>_P</code>结尾，并且可以额外附加补丁版本号，如<code>XXX_001_P.pak</code>。在<code>Mount()</code>函数中，如果发现PAK是一个补丁包，便会根据补丁的版本号给优先级加上一个bonus，比如<code>XXX_001_P.pak</code>文件的优先级就会增加(1+1)*100=200。这样就确保了补丁包PAK的优先级永远高于被打补丁的包。</p>
+<p>由于PAK文件只读，不允许对PAK内的文件进行写入，因此使用<code>OpenWrite()</code>打开文件写入时实际上是在往本地文件系统写入。</p>
+<p><code>OpenRead()</code>打开文件读取时，首先用<code>FindFileInPakFiles()</code>函数在所有已挂载的PAK中查找是否有该文件，找到了则返回PAK内的文件句柄；若没找到，还会使用<code>IsNonPakFilenameAllowed()</code>函数查询是否允许通过本地文件系统访问，允许的话，则转发到底层的本地文件系统进行读取。</p>
+<h3 id="fplatformfilereadstats"><a class="markdownIt-Anchor" href="#fplatformfilereadstats"></a> FPlatformFileReadStats</h3>
+<p>该接口实现了统计读取操作的速度的功能，共统计了以下7个指标：</p>
+<ul>
+<li>1 Tick下平均读取速度（MB/s）</li>
+<li>1 Tick下平均每次读取操作的读取大小（KB）</li>
+<li>1 Tick下发起的读取操作总数</li>
+<li>总平均读取速度（MB/s）</li>
+<li>总平均每次读取操作的读取大小（KB）</li>
+<li>总读取大小（MB）</li>
+<li>总读取操作次数</li>
+</ul>
+<p>对读取速度的统计需要在调用底层文件接口的<code>Read()</code>函数前后获取时间，以求出前后的时间差，即操作花费的时间。该功能实现在文件句柄类的子类<code>FPlatformFileReadStatsHandle::Read()</code>函数中。由于需要计算每Tick下的读取速度均值，在<code>Tick()</code>函数中需要清空并更新统计量。</p>
+<p>获取当前平台时间使用了<code>FPlatformTime::Seconds()</code>返回<code>double</code>类型的秒数。当秒数不会过小时（防止除零），计算<code>BytesPerSec</code>每秒读取KB数。更新统计量的时候采用了原子操作，主要是避免多文件句柄同时读取时，多线程更新统计量导致竞争。</p>
+<p>这个包装接口在需要对文件读取速度做性能剖析时使用，不能用于Shipping发布版本。</p>
+<h2 id="qa"><a class="markdownIt-Anchor" href="#qa"></a> Q&amp;A</h2>
+<ol>
+<li>
+<p>NetWorkPlatformFile和本地同名文件的关系？</p>
+<blockquote>
+<p>本地的文件不被考虑，只以服务器文件为准。引擎内存中有一个数组记录了哪些文件在本次运行中被缓存，所有不在这个数组中的文件路径被访问时都会从服务器获取，并<strong>覆盖</strong>原有的本地文件。</p>
+<p>总的来说，所有本次运行所访问到的文件都一定是源自服务器的。</p>
+</blockquote>
+</li>
+<li>
+<p>SandBox的具体作用？什么情况下要用SandBox？</p>
+<blockquote>
+<p>防止引擎对本地文件系统写入。当运行未知来源的游戏文件、或者是不希望游戏对文件系统做任何修改时，用SandBox（我猜的）</p>
+</blockquote>
+</li>
+<li>
+<p>NetWorkPlatformFile和PakPlatformFile的关系？</p>
+<blockquote>
+<p>前者为网络文件层，该层从服务器获取文件。</p>
+<p>后者为PAK文件层，该层从打包好的PAK文件中获取文件。</p>
+</blockquote>
+</li>
+<li>
+<p>文件读取速度的统计方式？</p>
+<blockquote>
+<p>见<code>FPlatformFileReadStats</code>类的描述。</p>
+</blockquote>
+</li>
+</ol>
+<h3 id="参考"><a class="markdownIt-Anchor" href="#参考"></a> 参考</h3>
+<ol>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/35925797">UE4 文件系统</a></li>
+<li><a href="%5Bhttps://arcecho.github.io/2017/07/02/UE4-Pak-%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86%E6%80%BB%E7%BB%93/%5D(https://arcecho.github.io/2017/07/02/UE4-Pak-%E7%9B%B8%E5%85%B3%E7%9F%A5%E8%AF%86%E6%80%BB%E7%BB%93/)">UE4 Pak 相关知识总结</a></li>
+</ol>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:duanhb1084@qq.com">dhbloo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://dhbloo.github.io/2020/09/07/UE4-FileSystem/">https://dhbloo.github.io/2020/09/07/UE4-FileSystem/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://dhbloo.github.io">dhb's Blog</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/UE4/">UE4</a><a class="post-meta__tags" href="/tags/%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F/">文件系统</a></div><div class="addthis_inline_share_toolbox pull-right"></div><script src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5d74ab045bf52ffe" async></script><nav id="pagination"><div class="next-post pull-right"><a href="/2020/09/07/UE4-Memory-Allocation/"><span>初探 UE4 内存分配</span><i class="fa fa-chevron-right"></i></a></div></nav><div id="disqus_thread"></div><script>var unused = null;
+var disqus_config = function () {
+  this.page.url = 'https://dhbloo.github.io/2020/09/07/UE4-FileSystem/';
+  this.page.identifier = '2020/09/07/UE4-FileSystem/';
+  this.page.title = 'UE4 文件系统';
+}
+var d = document, s = d.createElement('script');
+s.src = "https://" + 'myblog-mdqheoz6z0' +".disqus.com/embed.js";
+s.setAttribute('data-timestamp', '' + +new Date());
+(d.head || d.body).appendChild(s);</script></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2017 - 2020 By dhbloo</div><div class="framework-info"><span>驱动 - </span><a target="_blank" rel="noopener" href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a target="_blank" rel="noopener" href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="footer_custom_text">Welcome to my blog :)</div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.8.2"></script><script src="/js/fancybox.js?version=1.8.2"></script><script src="/js/sidebar.js?version=1.8.2"></script><script src="/js/copy.js?version=1.8.2"></script><script src="/js/fireworks.js?version=1.8.2"></script><script src="/js/transition.js?version=1.8.2"></script><script src="/js/scroll.js?version=1.8.2"></script><script src="/js/head.js?version=1.8.2"></script><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css"><script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css"><script src="/js/katex.js"></script><script src="/js/search/local-search.js"></script><script>if(/Android|webOS|iPhone|iPod|iPad|BlackBerry/i.test(navigator.userAgent)) {
+  $('#nav').addClass('is-mobile')
+  $('footer').addClass('is-mobile')
+  $('#top-container').addClass('is-mobile')
+}</script><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fa fa-times"></i></span></div><div class="search-mask"></div></body></html>

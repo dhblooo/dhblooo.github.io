@@ -1,0 +1,349 @@
+<!DOCTYPE html><html lang="zh-Hans"><head><meta charset="UTF-8"><meta http-equiv="X-UA-Compatible" content="IE=edge"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta name="description" content="初探 UE4 内存分配"><meta name="keywords" content="UE4,内存分配"><meta name="author" content="dhbloo,duanhb1084@qq.com"><meta name="copyright" content="dhbloo"><title>初探 UE4 内存分配 | dhb's Blog</title><link rel="shortcut icon" href="/melody-favicon.ico"><link rel="stylesheet" href="/css/index.css?version=1.8.2"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/font-awesome@latest/css/font-awesome.min.css?version=1.8.2"><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.7.2/css/all.min.css?version=1.8.2"><meta name="format-detection" content="telephone=no"><meta http-equiv="x-dns-prefetch-control" content="on"><link rel="dns-prefetch" href="https://cdn.jsdelivr.net"><link rel="dns-prefetch" href="https://www.google-analytics.com"><script>(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+ga('create', 'UA-143073882-2', 'auto');
+ga('send', 'pageview');</script><meta http-equiv="Cache-Control" content="no-transform"><meta http-equiv="Cache-Control" content="no-siteapp"><script>var GLOBAL_CONFIG = { 
+  root: '/',
+  algolia: undefined,
+  localSearch: {"path":"search.xml","languages":{"hits_empty":"找不到您查询的内容:${query}"}},
+  copy: {
+    success: '复制成功',
+    error: '复制错误',
+    noSupport: '浏览器不支持'
+  },
+  hexoVersion: '5.0.2'
+} </script><meta name="generator" content="Hexo 5.0.2"></head><body><i class="fa fa-arrow-right" id="toggle-sidebar" aria-hidden="true"></i><div id="sidebar" data-display="true"><div class="toggle-sidebar-info text-center"><span data-toggle="切换文章详情">切换站点概览</span><hr></div><div class="sidebar-toc"><div class="sidebar-toc__title">目录</div><div class="sidebar-toc__progress"><span class="progress-notice">你已经读了</span><span class="progress-num">0</span><span class="progress-percentage">%</span><div class="sidebar-toc__progress-bar"></div></div><div class="sidebar-toc__content"><ol class="toc"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%A4%A7%E7%BA%B2"><span class="toc-number">1.</span> <span class="toc-text"> 大纲</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E4%BB%8B%E7%BB%8D"><span class="toc-number"></span> <span class="toc-text"> 内存分配介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%9A%84%E7%9B%AE%E6%A0%87"><span class="toc-number">1.</span> <span class="toc-text"> 内存分配的目标</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%A0%86%E5%88%86%E9%85%8D"><span class="toc-number">1.1.</span> <span class="toc-text"> 堆分配</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E8%87%AA%E5%AE%9A%E5%88%B6%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D%E7%9A%84%E5%A5%BD%E5%A4%84"><span class="toc-number">1.2.</span> <span class="toc-text"> 自定制内存分配的好处</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B8%B8%E7%94%A8%E5%88%86%E9%85%8D%E6%96%B9%E6%A1%88"><span class="toc-number">2.</span> <span class="toc-text"> 常用分配方案</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%BA%95%E5%B1%82%E5%88%86%E9%85%8D%E5%99%A8%E4%BB%8B%E7%BB%8D"><span class="toc-number">3.</span> <span class="toc-text"> 底层分配器介绍</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#dlmalloc"><span class="toc-number">3.1.</span> <span class="toc-text"> dlmalloc</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#ptmalloc"><span class="toc-number">3.2.</span> <span class="toc-text"> ptmalloc</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#jemalloc"><span class="toc-number">3.3.</span> <span class="toc-text"> jemalloc</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#tcmalloc"><span class="toc-number">3.4.</span> <span class="toc-text"> tcmalloc</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#mimalloc"><span class="toc-number">3.5.</span> <span class="toc-text"> mimalloc</span></a></li></ol></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#ue4-%E5%86%85%E5%AD%98%E6%8A%BD%E8%B1%A1%E5%B1%82%E6%AC%A1"><span class="toc-number"></span> <span class="toc-text"> UE4 内存抽象层次</span></a><ol class="toc-child"><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E7%9B%B8%E5%85%B3%E6%8A%BD%E8%B1%A1%E5%B1%82"><span class="toc-number">1.</span> <span class="toc-text"> 平台相关抽象层</span></a></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%88%86%E9%85%8D%E5%99%A8%E5%B1%82"><span class="toc-number">2.</span> <span class="toc-text"> 分配器层</span></a><ol class="toc-child"><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B9%B3%E5%8F%B0%E5%BA%95%E5%B1%82%E5%88%86%E9%85%8D%E5%99%A8"><span class="toc-number">2.1.</span> <span class="toc-text"> 平台底层分配器</span></a><ol class="toc-child"><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocansi"><span class="toc-number">2.1.1.</span> <span class="toc-text"> FMallocAnsi</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocbinned2"><span class="toc-number">2.1.2.</span> <span class="toc-text"> FMallocBinned2</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocbinned"><span class="toc-number">2.1.3.</span> <span class="toc-text"> FMallocBinned</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocbinned3"><span class="toc-number">2.1.4.</span> <span class="toc-text"> FMallocBinned3</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmalloctbb"><span class="toc-number">2.1.5.</span> <span class="toc-text"> FMallocTBB</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocjemalloc"><span class="toc-number">2.1.6.</span> <span class="toc-text"> FMallocJemalloc</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocmimalloc"><span class="toc-number">2.1.7.</span> <span class="toc-text"> FMallocMimalloc</span></a></li><li class="toc-item toc-level-5"><a class="toc-link" href="#fmallocstomp"><span class="toc-number">2.1.8.</span> <span class="toc-text"> FMallocStomp</span></a></li></ol></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%8A%9F%E8%83%BD%E4%BF%AE%E9%A5%B0%E5%88%86%E9%85%8D%E5%99%A8"><span class="toc-number">2.2.</span> <span class="toc-text"> 功能修饰分配器</span></a></li><li class="toc-item toc-level-4"><a class="toc-link" href="#%E5%B4%A9%E6%BA%83%E5%90%8E%E5%A4%87%E5%88%86%E9%85%8D%E5%99%A8"><span class="toc-number">2.3.</span> <span class="toc-text"> 崩溃后备分配器</span></a></li></ol></li><li class="toc-item toc-level-3"><a class="toc-link" href="#%E5%85%A8%E5%B1%80%E7%94%A8%E6%88%B7%E6%8E%A5%E5%8F%A3%E5%B1%82"><span class="toc-number">3.</span> <span class="toc-text"> 全局用户接口层</span></a></li></ol></li><li class="toc-item toc-level-2"><a class="toc-link" href="#%E5%8F%82%E8%80%83"><span class="toc-number"></span> <span class="toc-text"> 参考</span></a></div></div><div class="author-info hide"><div class="author-info__avatar text-center"><img src="/icons/avatar.jpg"></div><div class="author-info__name text-center">dhbloo</div><div class="author-info__description text-center">A CS student, currently studying at HUST</div><div class="follow-button"><a target="_blank" rel="noopener" href="https://github.com/dhbloo">Follow Me</a></div><hr><div class="author-info-articles"><a class="author-info-articles__archives article-meta" href="/archives"><span class="pull-left">文章</span><span class="pull-right">15</span></a><a class="author-info-articles__tags article-meta" href="/tags"><span class="pull-left">标签</span><span class="pull-right">18</span></a><a class="author-info-articles__categories article-meta" href="/categories"><span class="pull-left">分类</span><span class="pull-right">5</span></a></div><hr><div class="author-info-links"><div class="author-info-links__title text-center">Links</div><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://gomocalc.github.io/">Gomocalc</a><a class="author-info-links__name text-center" target="_blank" rel="noopener" href="https://blog.nirvanasc.com/">ChenYixin</a></div></div></div><div id="content-outer"><div class="no-bg" id="top-container"><div id="page-header"><span class="pull-left"> <a id="site-name" href="/">dhb's Blog</a></span><i class="fa fa-bars toggle-menu pull-right" aria-hidden="true"></i><span class="pull-right menus">   <a class="site-page" href="/">Home</a><a class="site-page" href="/archives">Archives</a><a class="site-page" href="/tags">Tags</a><a class="site-page" href="/categories">Categories</a><a class="site-page" href="/log">Site Log</a></span><span class="pull-right"><a class="site-page social-icon search"><i class="fa fa-search"></i><span> 搜索</span></a></span></div><div id="post-info"><div id="post-title">初探 UE4 内存分配</div><div id="post-meta"><time class="post-meta__date"><i class="fa fa-calendar" aria-hidden="true"></i> 2020-09-07</time><span class="post-meta__separator">|</span><i class="fa fa-inbox post-meta__icon" aria-hidden="true"></i><a class="post-meta__categories" href="/categories/UE4/">UE4</a><div class="post-meta-wordcount"><span>字数总计: </span><span class="word-count">5.9k</span><span class="post-meta__separator">|</span><span>阅读时长: 18 分钟</span></div></div></div></div><div class="layout" id="content-inner"><article id="post"><div class="article-container" id="post-content"><blockquote>
+<p>整理了一下实习时记录的有关于Unreal Engine 4的文档，共有两篇。</p>
+</blockquote>
+<p>本文讲述了UE4内存分配器的抽象层次结构。</p>
+<a id="more"></a>
+<h3 id="大纲"><a class="markdownIt-Anchor" href="#大纲"></a> 大纲</h3>
+<ol>
+<li>内存分配介绍
+<ol>
+<li>目标</li>
+<li>常用分配方案</li>
+<li>底层分配器介绍</li>
+</ol>
+</li>
+<li>UE4 内存抽象层次
+<ol>
+<li>平台相关抽象层</li>
+<li>分配器层</li>
+<li>全局用户接口层</li>
+</ol>
+</li>
+</ol>
+<h2 id="内存分配介绍"><a class="markdownIt-Anchor" href="#内存分配介绍"></a> 内存分配介绍</h2>
+<h3 id="内存分配的目标"><a class="markdownIt-Anchor" href="#内存分配的目标"></a> 内存分配的目标</h3>
+<p>《游戏引擎架构》中将影响内存性能的提升点分为两方面：</p>
+<ul>
+<li>调用<code>operator new</code>/<code>malloc</code>的<strong>动态内存分配</strong>开销较大，使用自定制的内存分配器可以避免此开销。</li>
+<li><strong>内存访问模式</strong>会显著地影响一个程序的性能，让数据安排在小的、连续的内存块内可以有效地提高CPU的利用率。</li>
+</ul>
+<p>这里主要谈的是<strong>内存分配</strong>，也就是第一点。</p>
+<h4 id="堆分配"><a class="markdownIt-Anchor" href="#堆分配"></a> 堆分配</h4>
+<p><code>malloc</code>与<code>operator new</code>是C/C++中最低级的内存分配接口，是对操作系统堆分配的封装。既然涉及到操作系统API调用，就也会涉及到用户模式到内核模式的切换，开销很大。虽然一般的实现会自带内存块管理以减少进入内核模式的次数，但这种行为不可控，在实时性很高要求的时候可能带来严重的性能问题。另一方面，底层内存分配的实现以通用性为主，从几KB到几GB都要支持；而如果自己定制的话，就可以利用已有的分配需求，实现更高效的分配算法。</p>
+<h4 id="自定制内存分配的好处"><a class="markdownIt-Anchor" href="#自定制内存分配的好处"></a> 自定制内存分配的好处</h4>
+<ul>
+<li>
+<p>自行维护可用内存，减少切换内核模式的次数。</p>
+</li>
+<li>
+<p>针对特定的使用场景，对分配器的使用模式做出限定，进一步优化。</p>
+</li>
+</ul>
+<h3 id="常用分配方案"><a class="markdownIt-Anchor" href="#常用分配方案"></a> 常用分配方案</h3>
+<ul>
+<li>全局分配：分配的内存在整个游戏启动期间均需要使用。</li>
+<li>栈式分配：分配与回收以相反的顺序进行。</li>
+<li>双端栈式分配：相比栈式分配更好地利用空闲内存。</li>
+<li>池分配：每次分配固定大小的块，便于管理，也减少碎片。</li>
+<li>单帧分配/双缓冲分配：利用游戏中每一帧分配的空间可以在下一帧/下两帧回收的特点，让帧内的临时分配（如异步处理）高效的完成。</li>
+<li>动态分配：对分配和回收的大小和时间没有要求，如<code>malloc</code>和<code>operator new</code>。</li>
+</ul>
+<p>关于这几种分配器和相关的性能评估可见<a target="_blank" rel="noopener" href="https://github.com/mtrebi/memory-allocators">memory-allocators</a>。</p>
+<h3 id="底层分配器介绍"><a class="markdownIt-Anchor" href="#底层分配器介绍"></a> 底层分配器介绍</h3>
+<p>在上述的分配方案中，动态分配仍然是最通用的一种。底层动态分配器从操作系统提供的堆空间分配接口（如Linux的<code>brk/sbrk</code>和Windows的<code>HeapAlloc</code>）获得空闲内存并进行管理，最后由<code>malloc</code>或<code>operator new</code>分配给上层的程序。由于底层动态分配器要有足有的通用性，也要解决诸如多线程并发分配、内存碎片等问题，不同的方案最后的综合的性能也各不同。</p>
+<p>通用分配算法并不多，实际常用的有如下几种。</p>
+<h4 id="dlmalloc"><a class="markdownIt-Anchor" href="#dlmalloc"></a> dlmalloc</h4>
+<p>又称<em>Doug Lea’s Malloc</em>，是Doug Lea从1987年开始编写并维护的一个分配器。</p>
+<h4 id="ptmalloc"><a class="markdownIt-Anchor" href="#ptmalloc"></a> ptmalloc</h4>
+<p>全名pthreads malloc，在dlmalloc的基础上加入了对多线程的支持，是目前glibc的malloc实现。</p>
+<p><a target="_blank" rel="noopener" href="http://www.malloc.de/en/">Wolfram Gloger’s malloc homepage</a></p>
+<h4 id="jemalloc"><a class="markdownIt-Anchor" href="#jemalloc"></a> jemalloc</h4>
+<p>有着在多线程下高性能、内存碎片少的优点，最早是FreeBSD libc的分配器，目前Facebook采用。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/jemalloc/jemalloc">jemalloc</a></p>
+<h4 id="tcmalloc"><a class="markdownIt-Anchor" href="#tcmalloc"></a> tcmalloc</h4>
+<p>Thread Cache Malloc是由Google为并发程序设计的分配器，其特点是通过per CPU/per thread的缓冲降低多线程分配的竞争，使得并行性能有很高的可扩展性。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/google/tcmalloc">tcmalloc</a></p>
+<h4 id="mimalloc"><a class="markdownIt-Anchor" href="#mimalloc"></a> mimalloc</h4>
+<p>Microsoft的一个较新的分配器，在其benchmark中综合性能超过了上述一众分配器。</p>
+<p><a target="_blank" rel="noopener" href="https://github.com/microsoft/mimalloc">mimalloc</a></p>
+<p>更多关于分配器相关的资源可以见<a target="_blank" rel="noopener" href="https://github.com/rain-1/awesome-allocators">awesome-allocators</a>。</p>
+<h2 id="ue4-内存抽象层次"><a class="markdownIt-Anchor" href="#ue4-内存抽象层次"></a> UE4 内存抽象层次</h2>
+<p>UE4在内存分配上侧重动态分配的高效性，除了实现上述内存分配的目标，UE4还特别注重了<strong>跨平台</strong>和<strong>易用性</strong>两个方面。</p>
+<p>类似文件系统，UE4的内存相关的操作也是通过多层抽象实现的。为了实现这几个目标，其大致可以分为以下3层：</p>
+<ul>
+<li>平台相关抽象层（<code>FPlatformMamory</code>）</li>
+<li>分配器层（<code>FMalloc</code>）</li>
+<li>全局用户接口层（<code>FMemory</code>）</li>
+</ul>
+<p>它们的顺序也基本上是一个从底层封装到高层的关系。</p>
+<h3 id="平台相关抽象层"><a class="markdownIt-Anchor" href="#平台相关抽象层"></a> 平台相关抽象层</h3>
+<p>UE4为了适配各个不同的平台的内存分配接口，在**硬件抽象层（HAL）**定义了一层平台相关的内存操作接口，即<code>PlatformMemory.h</code>文件。其中定义了一个表示内存相关的接口的类<code>FPlatformMemory</code>，所有操作系统特定和平台特定的内存接口均封装在此类中。</p>
+<p>正如硬件抽象层的其他接口，这些平台通用的逻辑实现在了<code>GeneraicPlatformMemory.h</code>下；而平台特定的接口定义则放在了<code>XXXPlatformMemory.h</code>下。后者中平台特定的类一般直接继承前者中通用的类，以实现功能的扩充。最后通过一个typedef完成在编译时替换平台接口的操作，比如在Windows平台的内存接口文件中的最后一行就有：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">typedef</span> FWindowsPlatformMemory FPlatformMemory;</span><br></pre></td></tr></table></figure>
+<p>在此时<code>FPlatformMemory</code>就已经指替为了平台特定的接口实现，后续直接使用即可。</p>
+<blockquote>
+<p>UE4中绝大部分平台无关的接口均是由这种方式实现，由于在不同平台的头文件中有着不同的typedef定义，最后UBT在编译时只需要将合适的头文件include进来就可以了。事实上UE4专门定义了一个宏表示平台头文件的引入。如在<code>PlatformMemory.h</code>文件中就有这一行，通过宏的拼接，根据UBT定义的平台宏将其更换为对应的头文件：</p>
+<figure class="highlight plain"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">#include COMPILED_PLATFORM_HEADER(PlatformMemory.h)</span><br></pre></td></tr></table></figure>
+</blockquote>
+<p>在<code>GeneraicPlatformMemory.h</code>中，定义了数个与内存相关的类：</p>
+<ul>
+<li><code>FGenericPlatformMemoryConstants</code>：存放描述一个平台内存相关常数的类，常数包括总内存大小、虚拟内存大小、页大小等。更高层的内存分配器可以利用这些信息来调优。</li>
+<li><code>FGenericPlatformMemoryStats</code>：存放描述当前内存使用状况的类，如可用大小、已用大小等。</li>
+<li><code>FSharedMemoryRegion</code>：表示一段共享内存区域。</li>
+<li><code>FBasicVirtualMemoryBlock</code>：表示一个虚拟内存块。</li>
+<li><code>FGenericPlatformMemory</code>：内存相关接口的集合，主要包括：
+<ul>
+<li>初始化、设置内存池</li>
+<li>处理Out of Memory异常</li>
+<li>获得该平台上的基础分配器</li>
+<li>获取统计信息、内存相关常数，Dump内存和分配器信息</li>
+<li>对虚拟内存页面施加保护</li>
+<li>从操作系统分配对齐的大块内存页面（用于Binned Allocator）</li>
+<li>常规内存内存操作，如<code>Memmove</code>、<code>Memcmp</code>、<code>Memset</code>、<code>Memzero</code>、<code>Memcpy</code></li>
+</ul>
+</li>
+</ul>
+<p>它们基本上最后都会用上面提到的方法定义出实际使用的类，去掉开头的<code>Generaic</code>就是实际类的名字。</p>
+<h3 id="分配器层"><a class="markdownIt-Anchor" href="#分配器层"></a> 分配器层</h3>
+<p>从<code>FPlatformMemory::BaseAllocator()</code>可以获得平台上的基础分配器。分配器均继承自<code>FMalloc</code>。<code>FMalloc</code>可以看做是一切分配器的基类，其定义了分配器的基础接口，包括<code>(Try)Malloc</code>、<code>(Try)Realloc</code>、<code>Free</code>等虚函数。</p>
+<p>分配器从功能上也可以分为几类：</p>
+<ul>
+<li>平台底层分配器：一个平台上最底层的一层分配器，一般是OS上内存相关接口的直接封装。</li>
+<li>功能修饰分配器：在底层分配器的基础上实现一些额外功能，如检测双重释放、检测泄漏、性能统计等等。</li>
+<li>崩溃后备分配器：当遇到Out of Memory而崩溃时，不能再从平台底层分配器中申请内存。此时全局分配器会切换到一个预先分配好的后备分配器，以便完成错误信息收集与汇报等流程。</li>
+</ul>
+<p>按照这种分层，可以比较清楚的看到各类分配器的作用：</p>
+<p><img src="/images/ue4-memory-allocator.png" alt="" /></p>
+<h4 id="平台底层分配器"><a class="markdownIt-Anchor" href="#平台底层分配器"></a> 平台底层分配器</h4>
+<p>目前，可使用的底层分配器定义在如下的枚举中：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">enum</span> EMemoryAllocatorToUse</span><br><span class="line">&#123;</span><br><span class="line">	Ansi, <span class="comment">// Default C allocator</span></span><br><span class="line">	Stomp, <span class="comment">// Allocator to check for memory stomping</span></span><br><span class="line">	TBB, <span class="comment">// Thread Building Blocks malloc</span></span><br><span class="line">	Jemalloc, <span class="comment">// Linux/FreeBSD malloc</span></span><br><span class="line">	Binned, <span class="comment">// Older binned malloc</span></span><br><span class="line">	Binned2, <span class="comment">// Newer binned malloc</span></span><br><span class="line">	Binned3, <span class="comment">// Newer VM-based binned malloc, 64 bit only</span></span><br><span class="line">	Platform, <span class="comment">// Custom platform specific allocator</span></span><br><span class="line">	Mimalloc, <span class="comment">// mimalloc</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>底层分配器的创建在每个平台自己的<code>FXXXPlatformMemory::BaseAllocator()</code>函数下创建，默认具体创建哪一个根据编译选项决定。各种平台下可以使用的分配器：</p>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>可以使用的分配器</th>
+<th>默认分配器（64Bits，游戏构建）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Windows</td>
+<td>Ansi/TBB/Mimalloc/Binned3/Binned2/Binned/Stomp</td>
+<td>Binned2</td>
+</tr>
+<tr>
+<td>Unix/Linux</td>
+<td>Ansi/Binned2/Binned/Stomp</td>
+<td>Binned2</td>
+</tr>
+<tr>
+<td>Mac</td>
+<td>Ansi/TBB/Binned2/Binned/Stomp</td>
+<td>Binned2</td>
+</tr>
+<tr>
+<td>IOS</td>
+<td>Ansi/Binned2/Binned</td>
+<td>Binned</td>
+</tr>
+<tr>
+<td>Android</td>
+<td>Binned3/Binned2/Binned</td>
+<td>Binned2</td>
+</tr>
+</tbody>
+</table>
+<p>在桌面端平台下，也可以通过启动命令行参数覆盖默认选择，如<code>-stompmalloc</code>就是使用Stomp分配器。</p>
+<p>下面详细介绍每一种底层分配器。</p>
+<h5 id="fmallocansi"><a class="markdownIt-Anchor" href="#fmallocansi"></a> FMallocAnsi</h5>
+<p>实际分配使用C语言标准库<code>malloc</code>/<code>realloc</code>/<code>free</code>函数，FMallocAnsi通过分配一点额外空间来处理对齐问题。</p>
+<p>解决对齐的做法和《游戏引擎架构》6.2.1.3中提到的一样：额外分配一个Alignment大小的空间，此外还有一个<code>void*</code>大小的指针记录实际从<code>malloc</code>取得的地址，和<code>SIZE_T</code>大小的变量表示分配大小以通过指针供反查询分配空间大小。在归还内存时，便可以通过对齐的指针反向查询出malloc原本返回的指针：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">void</span>* originPtr = *((<span class="keyword">void</span>**)((uint8*)Ptr - <span class="keyword">sizeof</span>(<span class="keyword">void</span>*)));</span><br><span class="line"><span class="built_in">free</span>(originPtr);</span><br></pre></td></tr></table></figure>
+<p>其内存布局大致如下：</p>
+<p><img src="/images/AnsiMalloc.png" alt="" /></p>
+<h5 id="fmallocbinned2"><a class="markdownIt-Anchor" href="#fmallocbinned2"></a> FMallocBinned2</h5>
+<p>在游戏引擎中，经常需要分配很多很小块的内存（几十bytes到几百bytes之间）。这些内存被频繁地分配释放，很容易导致大量的碎片问题，而UE4中的Binned Malloc就是为了解决内存碎片引发的性能问题。由于OS已经通过虚拟内存分页管理的方式解决了以页为单位的碎片，那么UE4就只需要解决小对象的分配就行了。</p>
+<p>Binned的意思是“分箱”，意思是将小块的内存装在一个大箱中，便于管理。比如一个对象的大小是86 bytes，在实际分配时并不一定就按这个大小进行分配，而是将其放在一个比其大小稍大的箱子中，比如96 bytes的箱子。“分箱”的好处是减少了可能的分配大小数量，不需要再去考虑各种大小，只需要考虑几个预先确定下来的箱子大小。固定大小的另一个好处是非常便于用<strong>内存池</strong>的方式管理，进一步解决了碎片问题；此外也增加了内存复用，减少了调用OS内存分配这个较慢的操作。</p>
+<p>箱子大小的确定是一个比较有技巧的事情，如果选择的不合适会导致内存空间的浪费过多。在<code>FMallocBinned2</code>中的<code>SmallPoolTables</code>表就记录了各种预先定义的箱大小，在分配一个特定大小的内存块时，会找一个与其最接近的箱子。箱子大小应该是分页大小的偶数因子，也需要让其做到16 bytes对齐，保证任何对齐要求都能被满足。目前箱子的大小共划分了45个档位：</p>
+<figure class="highlight c++"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> uint16 SmallBlockSizes[<span class="number">45</span>] =</span><br><span class="line">&#123;</span><br><span class="line">	<span class="number">16</span>, <span class="number">32</span>, <span class="number">48</span>, <span class="number">64</span>, <span class="number">80</span>, <span class="number">96</span>, <span class="number">112</span>, <span class="number">128</span>,</span><br><span class="line">	<span class="number">160</span>, <span class="number">192</span>, <span class="number">224</span>, <span class="number">256</span>, <span class="number">288</span>, <span class="number">320</span>, <span class="number">384</span>, <span class="number">448</span>,</span><br><span class="line">	<span class="number">512</span>, <span class="number">576</span>, <span class="number">640</span>, <span class="number">704</span>, <span class="number">768</span>, <span class="number">896</span>, <span class="number">1024</span> - <span class="number">16</span>, <span class="number">1168</span>,</span><br><span class="line">	<span class="number">1360</span>, <span class="number">1632</span>, <span class="number">2048</span> - <span class="number">16</span>, <span class="number">2336</span>, <span class="number">2720</span>, <span class="number">3264</span>, <span class="number">4096</span> - <span class="number">16</span>, <span class="number">4368</span>,</span><br><span class="line">	<span class="number">4672</span>, <span class="number">5040</span>, <span class="number">5456</span>, <span class="number">5952</span>, <span class="number">6544</span> - <span class="number">16</span>, <span class="number">7280</span>, <span class="number">8192</span> - <span class="number">16</span>, <span class="number">9360</span>,</span><br><span class="line">	<span class="number">10912</span>, <span class="number">13104</span>, <span class="number">16384</span> - <span class="number">16</span>, <span class="number">21840</span>, <span class="number">32768</span> - <span class="number">16</span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+<p>最低一档为16 bytes，最高一档为32768 - 16 bytes，只要分配大小小于最高一档，就采用这种分箱的分配方法。在分配时为了尽快找到最接近的大小档位，预先建立了一个查找表，并在<code>BoundSizeToPoolIndex()</code>中根据分配大小转换到箱大小。注意到其中有一些项减去了16，目的主要是预留额外空间，让块的地址满足对齐要求。</p>
+<p>分配器对于箱内存的管理采用了内存池的方式，每一种箱大小对应一个内存池列表，而一个内存池实际上对应到一个逻辑页表。<strong>逻辑页表</strong>是Binned Malloc2分配器自己定义了一个内存单位，由多个连续的OS页表组成。目前一个逻辑页表的大小为64KB，在Windows下一个OS页表为4KB，也就是一个逻辑页表由16个连续的OS页表组成。</p>
+<p>在每个内存池（逻辑页表）内，空间被分为以块为单位，每块的大小就是这个内存池的箱大小，其中的空闲块称作FreeBlock。在划分块的适合尽量要让多出来的剩余空间较小，这也是为什么前面在内存池分块时大小选定为分页大小的偶数因子。</p>
+<p>内存池中空闲块的管理采用Free List方法，也就是链表结构，这里free的意思指链表的实际节点就储存在空闲块内部（类似intrusive list）。每当需要分配的时候就从链表头取出一个节点，释放时再挂回去。链表的节点由<code>FFreeBlock</code>描述，一个节点不一定只表示一个独立的块，而是可以直接表示多个连续的块。这样，在初始化时只需要处理一个节点即可。若一个<code>FFreeBlock</code>中有多个块，单个块的分配是从后往前分配的；而如果<code>FFreeBlock</code>只有一个块，就直接进行分配。</p>
+<p>一个内存池的布局大致如下图所示：</p>
+<p><img src="/images/BinnedMalloc2-Pool.png" alt="" /></p>
+<p>在Binned Malloc2，从最上层的内存池列表到最下层的FreeBlock的管理，涉及到了几个结构：</p>
+<ul>
+<li>
+<p>FFreeBlock：空闲块链表节点，大小刚好为16 bytes（最小的一个箱大小）。其中记录了该块大小、在内存池中的序号、魔数（检验内存完整性）、此处连续的空闲块的块数，最重要的还是指向下一个<code>FFreeBlock</code>的指针，以将池中的所有空闲块链起来。</p>
+</li>
+<li>
+<p>FPoolInfo：描述一个内存池的信息，其中<code>FirstFreeblock</code>指向第一个<code>FFreeBlock</code>节点。不同的内存池之间形成双向链表。</p>
+</li>
+<li>
+<p>FPoolList：管理由<code>FPoolInfo</code>组成的内存池信息列表。</p>
+</li>
+<li>
+<p>FPoolTable：存放一种箱大小的<code>FPoolList</code>，由于之前分了45档，<code>FPoolTable</code>也一共有45个。<code>FPoolTable</code>中将内存池分为活跃和非活跃的两种，对应到<code>ActivePools</code>和<code>ExhaustedPools</code>两种内存池列表。一旦一个内存池的块全部分配完毕，就认为其是非活跃的；而活跃的内存池一定是有非分配的空闲块的。活跃的内存池的已分配块全部清空后，可以将该内存池空间归还。</p>
+</li>
+</ul>
+<p>由于以上的结构为全局结构，在实际操作时需要加锁，多线程性能较差。为了并发分配的问题，Binned Malloc2还设置了一种<strong>线程局部块列表缓存</strong><code>FPerThreadFreeBlockLists</code>，但线程归还某个块时，并不是直接还给内存池，而是先挂在这个缓存的块列表中。该缓存通过**TLS（Thread Loacl Storage）**实现，保证线程安全性。当缓存中的块数超过一个包（<code>FBundle</code>）的大小时，再批量地将这些块还给内存池。</p>
+<p>当分配大小大于最大的箱大小时，会走另一条分配途径，直接从OS中分配连续的虚拟内存页面，具体的过程就不细说了。</p>
+<p>此外，UE4还对OS分配的页表做了缓存（<code>FCachedOSPageAllocator</code>）。</p>
+<p>整个Binned Malloc的实现，和Jemalloc、Mimalloc中的分配算法处理有不少相似之处。</p>
+<p>一些更详细的介绍可以参考<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/79715624">这篇文章</a>。</p>
+<h5 id="fmallocbinned"><a class="markdownIt-Anchor" href="#fmallocbinned"></a> FMallocBinned</h5>
+<p>Binned Malloc是Binned Malloc 2的上一代版本，目前默认只有IOS使用。</p>
+<p>分配的思路和Binned Malloc 2相差不多，也是采用分箱和池的思想。按照分配的大小，共有4条分配路径：</p>
+<ol>
+<li>
+<p>Size &lt;= SMALL_BLOCK_POOL_SIZE (256B)</p>
+<p>IOS由于其硬件的内存较小，系统的分配器采用一些特殊的处理，将内存分配按大小分为nano、tiny、small、large几种类型，申请时按需进行最适分配。</p>
+<p><img src="/images/IOS-malloc.png" alt="" /></p>
+<p>在64位的IOS系统分配器中，对于小于256 bytes的分配会优先考虑nano分配。而在Binned Malloc中，也考虑了这一点，对于小于<code>SMALL_BLOCK_POOL_SIZE</code>的分配大小（在IOS下<code>SMALL_BLOCK_POOL_SIZE</code>为256），会导向<code>SmallOSAlloc</code>分配路径，最后直接从系统的<code>malloc</code>中进行分配，也就是IOS的nano分配。至于nano malloc区的实际空间有多大，是在<code>FMallocBinned</code>的构造函数中试出来的：首先通过分配一块极小的内存得知nano区域的位置，然后再循环尝试获取nano的全部空间，统计出其大小。由于nano区域的地址是确定的，在free时可以判断指针是否来自nano区域，从而正确地归还给nano malloc。</p>
+</li>
+<li>
+<p>Size &lt;= BinnedSizeLimit (32KB)</p>
+<p>根据分配大小找到最接近的箱大小，从内存池中取出一个箱子的空间用于分配，和Binned Malloc 2类似。这里的池的个数只有42种。</p>
+</li>
+<li>
+<p>Size &gt; BinnedSizeLimit &amp;&amp; Size &lt;= <span class="katex"><span class="katex-mathml"><math><semantics><mrow><mfrac><mn>3</mn><mn>2</mn></mfrac></mrow><annotation encoding="application/x-tex">\frac{3}{2}</annotation></semantics></math></span><span class="katex-html" aria-hidden="true"><span class="base"><span class="strut" style="height:1.190108em;vertical-align:-0.345em;"></span><span class="mord"><span class="mopen nulldelimiter"></span><span class="mfrac"><span class="vlist-t vlist-t2"><span class="vlist-r"><span class="vlist" style="height:0.845108em;"><span style="top:-2.6550000000000002em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">2</span></span></span></span><span style="top:-3.23em;"><span class="pstrut" style="height:3em;"></span><span class="frac-line" style="border-bottom-width:0.04em;"></span></span><span style="top:-3.394em;"><span class="pstrut" style="height:3em;"></span><span class="sizing reset-size6 size3 mtight"><span class="mord mtight"><span class="mord mtight">3</span></span></span></span></span><span class="vlist-s">​</span></span><span class="vlist-r"><span class="vlist" style="height:0.345em;"><span></span></span></span></span></span><span class="mclose nulldelimiter"></span></span></span></span></span> BinnedSizeLimit || Size &gt;  PageSize &lt;= PageSize + BinnedSizeLimit</p>
+<p>根据大小在两个有较大的块的池中选择进行分配，过程和2中的类似。</p>
+</li>
+<li>
+<p>其他情况</p>
+<p>对齐后直接调用OS的分配。</p>
+</li>
+</ol>
+<h5 id="fmallocbinned3"><a class="markdownIt-Anchor" href="#fmallocbinned3"></a> FMallocBinned3</h5>
+<p>为Binned Malloc 2的升级版本，其使用了PlatformMemory中提供的新接口，通过直接操作OS的虚拟地址，使得内存池索引和管理能够更高效地进行。</p>
+<p>比如其先进行虚拟内存的保留，等到实际使用时才真正进行页面分配。</p>
+<p>目前Binned Malloc 3只在Windows和Android上支持。</p>
+<blockquote>
+<p>据称Epic在Fortnite中通过切换到Binned Malloc 3，将内存占用减少了几十MB。</p>
+</blockquote>
+<h5 id="fmalloctbb"><a class="markdownIt-Anchor" href="#fmalloctbb"></a> FMallocTBB</h5>
+<p>使用<a target="_blank" rel="noopener" href="https://software.intel.com/content/www/us/en/develop/tools/threading-building-blocks.html">Intel® Threading Building Blocks</a>的分配器实现。</p>
+<p>TBB分配器提供扩展性好的并行内存分配，防止多线程伪共享问题。</p>
+<h5 id="fmallocjemalloc"><a class="markdownIt-Anchor" href="#fmallocjemalloc"></a> FMallocJemalloc</h5>
+<p>使用<a target="_blank" rel="noopener" href="http://jemalloc.net/">Jemalloc</a>分配器实现。</p>
+<h5 id="fmallocmimalloc"><a class="markdownIt-Anchor" href="#fmallocmimalloc"></a> FMallocMimalloc</h5>
+<p>使用<a target="_blank" rel="noopener" href="https://microsoft.github.io/mimalloc/">Mimalloc</a>分配器实现。Mimalloc是目前benchmark中最好的分配器实现，该分配器在2020年1月加入到UE4中。</p>
+<h5 id="fmallocstomp"><a class="markdownIt-Anchor" href="#fmallocstomp"></a> FMallocStomp</h5>
+<p>缓冲区溢出检测分配器，可以用于发现如下的bug：</p>
+<ul>
+<li>在分配区域的尾部之后读写</li>
+<li>在分配区域的头部之前读写</li>
+<li>在释放区域后读写（Windows下）</li>
+</ul>
+<p>检测的方式是额外分配一个虚拟内存页面，并设置该页面的保护属性为不可访问，当写溢出时会触发操作系统保护。</p>
+<p>Windows平台能够实现只分配虚拟地址而不分配物理地址的功能，可以用于保留已经分配过的虚拟地址，检测在释放后的读写操作。这种方式的副作用是造成OS页表项的大量分配。</p>
+<blockquote>
+<p>Windows页表项使用VAD Trees管理，页表项只是描述这个页的信息，而实际的页不一定进行了分配。只要Windows在页表中保留了描述某个页范围的项，这个范围内的页就不会被分配给其他人。</p>
+<p>详情见<a target="_blank" rel="noopener" href="https://docs.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc">Win32 API - VirtualAlloc</a></p>
+</blockquote>
+<h4 id="功能修饰分配器"><a class="markdownIt-Anchor" href="#功能修饰分配器"></a> 功能修饰分配器</h4>
+<p>这类分配器只是在已有分配器的一层包装，依赖于已有的分配器（在构造时需要传入原分配器指针），以实现一些额外功能。功能主要为一系列相关检测、性能统计、线程安全等。</p>
+<blockquote>
+<p>这里又用到了责任链设计模式</p>
+</blockquote>
+<ul>
+<li>
+<p><code>FMallocVerify</code>：检验内存指针有效性，即检测释放时还给分配器的指针是不是真的分配过。</p>
+</li>
+<li>
+<p><code>FMallocLeakDetectionProxy</code>：实际上为<code>FMallocLeakDetection</code>的代理，检测内存泄漏。</p>
+<p>为了定位泄漏的地点，其内部采用了作用域记录的方式，用户代码配合<code>MALLOCLEAK_SCOPED_CONTEXT(Context)</code>和<code>MALLOCLEAK_WHITELIST_SCOPE()</code>这两个宏来自定义作用域，以便于记录分配的作用域，更准确地定位泄漏位置。</p>
+</li>
+<li>
+<p><code>FMallocPoisonProxy</code>：“毒化”内存，即在分配后空间填充特殊字节<code>0xcd</code>，回收后空间填充<code>0xdd</code>。一些变量未初始化的问题可以比较明显地体现出来。</p>
+</li>
+<li>
+<p><code>FMallocDoubleFreeFinder</code>：检测指针被释放两次的问题。</p>
+</li>
+<li>
+<p><code>FMallocThreadSafeProxy</code>：给内存各种操作上锁，使其变为线程安全的。</p>
+</li>
+<li>
+<p><code>FMallocReplayProxy</code>：将所有的内存分配操作记录下来，记录在磁盘文件中，以便后续回放（可以用来比较不同的底层分配器实现）。</p>
+<p>目前只有Linux开启了该功能。</p>
+</li>
+<li>
+<p><code>FMallocPurgatoryProxy</code>：类似<code>FMallocStomp</code>检测已释放内存被写入的功能，但可适用于所有平台。</p>
+<p>实际上是将内存释放推迟了几帧，并在真正释放时检测是否修改过其中的内容。</p>
+</li>
+<li>
+<p><code>FStatsMallocProfilerProxy</code>：统计内存分配操作到线程统计信息中。</p>
+</li>
+<li>
+<p><code>FMallocProfiler</code>：内存分配性能剖析，将内存分配信息记录到文件中以供后续分析。</p>
+</li>
+</ul>
+<h4 id="崩溃后备分配器"><a class="markdownIt-Anchor" href="#崩溃后备分配器"></a> 崩溃后备分配器</h4>
+<p>在<code>PlatformMallocCrash.h</code>中，定义了<code>FPlatformMallocCrash</code>类用于处理崩溃时的内存分配。根据编译选项，其相当于以下两个类中的一个：</p>
+<ul>
+<li><code>FGenericStackBasedMallocCrash</code>：不释放的栈式分配</li>
+<li><code>FGenericPlatformMallocCrash</code>：针对小块内存使用池分配；大块内存只分配不释放。</li>
+</ul>
+<p>后备分配器的空间在引擎启动之处，随着全局分配器的创建而预选分配好，保证在后备分配器可用后才进行任何动态分配。</p>
+<h3 id="全局用户接口层"><a class="markdownIt-Anchor" href="#全局用户接口层"></a> 全局用户接口层</h3>
+<p><code>FMemory</code>是对引擎全局内存接口的一个轻量级封装，提供了供引擎其他部分实际调用的内存接口。</p>
+<p>一些常规操作（如<code>memcpy</code>、<code>memset</code>等）基本上是直接转发到<code>FPlatformMemory</code>中。</p>
+<p>至于分配操作，需要持有一个分配器的实例，这个实例就是<code>GMalloc</code>。其创建在<code>FMemory_GCreateMalloc_ThreadUnsafe()</code>函数中进行。创建的过程如下：</p>
+<ol>
+<li>从<code>FPlatformMemory</code>获得平台底层分配器</li>
+<li>初始化崩溃后备分配器<code>FPlatformMallocCrash</code></li>
+<li>如果开启了性能统计，用<code>FMallocProfiler</code>包装当前<code>GMalloc</code></li>
+<li>如果当前<code>GMalloc</code>不是线程安全的，用<code>FMallocThreadSafeProxy</code>包装，使其成为线程安全的</li>
+<li>如果开启了指针有效性检验，用<code>FMallocVerifyProxy</code>包装当前<code>GMalloc</code></li>
+<li>如果开启了泄漏检测，用<code>FMallocLeakDetectionProxy</code>包装当前<code>GMalloc</code></li>
+<li>如果开启了内存毒化，用<code>FMallocVerifyProxy</code>包装当前<code>GMalloc</code></li>
+<li>如果开启了双重释放检测，调用<code>FMallocDoubleFreeFinder::OverrideIfEnabled()</code>包装当前<code>GMalloc</code></li>
+</ol>
+<p>实际进行分配时，如果发现<code>GMalloc</code>实例还没有创建，就会调用上述函数进行创建（创建过程保证是线程安全的）。之后直接调用<code>GMalloc-&gt;Malloc()</code>等接口进行分配和释放。</p>
+<p>综上，在UE4中需要动态分配内存时，均应该通过<code>FMemory::Malloc</code>等接口进行，若用operator new或C语言的malloc，就无法享受到UE4内存分配器带来的好处。</p>
+<h2 id="参考"><a class="markdownIt-Anchor" href="#参考"></a> 参考</h2>
+<ol>
+<li>《游戏引擎架构》Chapter 6.2</li>
+<li><a target="_blank" rel="noopener" href="https://github.com/mtrebi/memory-allocators">memory-allocators</a></li>
+<li><a target="_blank" rel="noopener" href="https://github.com/rain-1/awesome-allocators#awesome-allocators">awesome-allocators</a></li>
+<li><a target="_blank" rel="noopener" href="http://gee.cs.oswego.edu/dl/html/malloc.html">A Memory Allocator</a></li>
+<li><a href="%5Bhttps://wertherzhang.com/dlmalloc%E6%B5%85%E6%9E%90/%5D(https://wertherzhang.com/dlmalloc%E6%B5%85%E6%9E%90/)">dlmalloc浅析</a></li>
+<li><a href="%5Bhttps://wertherzhang.com/tcmalloc2.1%E6%B5%85%E6%9E%90/#tcmalloc%5D(https://wertherzhang.com/tcmalloc2.1%E6%B5%85%E6%9E%90/#tcmalloc)">tcmalloc2.1 浅析</a></li>
+<li><a target="_blank" rel="noopener" href="https://qiita.com/EGJ-Yutaro_Sawada/items/4983d0ebfa945611d324">[UE4] About Memory Allocation</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/79715624">UE4 MallocBinned2分配器</a></li>
+<li><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/75826986">UE4源码剖析：MallocBinned（上）</a></li>
+<li><a target="_blank" rel="noopener" href="http://tinylab.org/memory-allocation-mystery-malloc-in-os-x-ios/">内存分配奥义·malloc in OS X</a></li>
+</ol>
+</div></article><div class="post-copyright"><div class="post-copyright__author"><span class="post-copyright-meta">文章作者: </span><span class="post-copyright-info"><a href="mailto:duanhb1084@qq.com">dhbloo</a></span></div><div class="post-copyright__type"><span class="post-copyright-meta">文章链接: </span><span class="post-copyright-info"><a href="https://dhbloo.github.io/2020/09/07/UE4-Memory-Allocation/">https://dhbloo.github.io/2020/09/07/UE4-Memory-Allocation/</a></span></div><div class="post-copyright__notice"><span class="post-copyright-meta">版权声明: </span><span class="post-copyright-info">本博客所有文章除特别声明外，均采用 <a target="_blank" rel="noopener" href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC BY-NC-SA 4.0</a> 许可协议。转载请注明来自 <a href="https://dhbloo.github.io">dhb's Blog</a>！</span></div></div><div class="post-meta__tag-list"><a class="post-meta__tags" href="/tags/UE4/">UE4</a><a class="post-meta__tags" href="/tags/%E5%86%85%E5%AD%98%E5%88%86%E9%85%8D/">内存分配</a></div><div class="addthis_inline_share_toolbox pull-right"></div><script src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-5d74ab045bf52ffe" async></script><nav id="pagination"><div class="prev-post pull-left"><a href="/2020/09/07/UE4-FileSystem/"><i class="fa fa-chevron-left">  </i><span>UE4 文件系统</span></a></div><div class="next-post pull-right"><a href="/2020/09/06/Cpp-Notes/"><span>C++知识点笔记与踩坑记录</span><i class="fa fa-chevron-right"></i></a></div></nav><div id="disqus_thread"></div><script>var unused = null;
+var disqus_config = function () {
+  this.page.url = 'https://dhbloo.github.io/2020/09/07/UE4-Memory-Allocation/';
+  this.page.identifier = '2020/09/07/UE4-Memory-Allocation/';
+  this.page.title = '初探 UE4 内存分配';
+}
+var d = document, s = d.createElement('script');
+s.src = "https://" + 'myblog-mdqheoz6z0' +".disqus.com/embed.js";
+s.setAttribute('data-timestamp', '' + +new Date());
+(d.head || d.body).appendChild(s);</script></div></div><footer><div class="layout" id="footer"><div class="copyright">&copy;2017 - 2020 By dhbloo</div><div class="framework-info"><span>驱动 - </span><a target="_blank" rel="noopener" href="http://hexo.io"><span>Hexo</span></a><span class="footer-separator">|</span><span>主题 - </span><a target="_blank" rel="noopener" href="https://github.com/Molunerfinn/hexo-theme-melody"><span>Melody</span></a></div><div class="footer_custom_text">Welcome to my blog :)</div><div class="busuanzi"><script async src="//busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js"></script><span id="busuanzi_container_page_pv"><i class="fa fa-file-o"></i><span id="busuanzi_value_page_pv"></span><span></span></span></div></div></footer><i class="fa fa-arrow-up" id="go-up" aria-hidden="true"></i><script src="https://cdn.jsdelivr.net/npm/animejs@latest/anime.min.js"></script><script src="https://cdn.jsdelivr.net/npm/jquery@latest/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/@fancyapps/fancybox@latest/dist/jquery.fancybox.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-animate@latest/velocity.min.js"></script><script src="https://cdn.jsdelivr.net/npm/velocity-ui-pack@latest/velocity.ui.min.js"></script><script src="/js/utils.js?version=1.8.2"></script><script src="/js/fancybox.js?version=1.8.2"></script><script src="/js/sidebar.js?version=1.8.2"></script><script src="/js/copy.js?version=1.8.2"></script><script src="/js/fireworks.js?version=1.8.2"></script><script src="/js/transition.js?version=1.8.2"></script><script src="/js/scroll.js?version=1.8.2"></script><script src="/js/head.js?version=1.8.2"></script><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex@latest/dist/katex.min.css"><script src="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.js"></script><link rel="stylesheet" type="text/css" href="https://cdn.jsdelivr.net/npm/katex-copytex@latest/dist/katex-copytex.min.css"><script src="/js/katex.js"></script><script src="/js/search/local-search.js"></script><script>if(/Android|webOS|iPhone|iPod|iPad|BlackBerry/i.test(navigator.userAgent)) {
+  $('#nav').addClass('is-mobile')
+  $('footer').addClass('is-mobile')
+  $('#top-container').addClass('is-mobile')
+}</script><div class="search-dialog" id="local-search"><div class="search-dialog__title" id="local-search-title">本地搜索</div><div id="local-input-panel"><div id="local-search-input"><div class="local-search-box"><input class="local-search-box--input" placeholder="搜索文章"></div></div></div><hr><div id="local-search-results"><div id="local-hits"></div><div id="local-stats"><div class="local-search-stats__hr" id="hr"><span>由</span> <a target="_blank" rel="noopener" href="https://github.com/wzpan/hexo-generator-search" style="color:#49B1F5;">hexo-generator-search</a>
+ <span>提供支持</span></div></div></div><span class="search-close-button"><i class="fa fa-times"></i></span></div><div class="search-mask"></div></body></html>
